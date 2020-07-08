@@ -1,3 +1,6 @@
 .DS_Store
 wwdcDownloader 
 *.part/
+out/
+.build/
+.swiftpm/
