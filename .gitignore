@@ -1,6 +1,11 @@
 .DS_Store
 wwdcDownloader 
+wwdc
+
 *.part/
 out/
 .build/
 .swiftpm/
+
+*.pdf
+*.mp4
