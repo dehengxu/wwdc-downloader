@@ -1,12 +1,12 @@
 import XCTest
-@testable import wwdc_downloader
+@testable import wwdcDld
 
 final class wwdc_downloaderTests: XCTestCase {
     func testExample() {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
-        XCTAssertEqual(wwdc_downloader().text, "Hello, World!")
+        //XCTAssertEqual(wwdc_downloader().text, "Hello, World!")
     }
 
     static var allTests = [

@@ -795,12 +795,12 @@ func showHelpAndExit() {
 /* Managing options */
 let wwdcIndexUrlBaseString = "https://developer.apple.com/videos/"
 let wwdcSessionUrlBaseString = "https://developer.apple.com/videos/play/"
-var videoType = "wwdc2019"
-var format = VideoQuality.HD1080
+var videoType = "wwdc2020"
+var format = VideoQuality.SD
 var videoDownloadMode = VideoDownloadMode.stream
 
-var shouldDownloadPDFResource = false
-var shouldDownloadVideoResource = true
+var shouldDownloadPDFResource = true
+var shouldDownloadVideoResource = false
 var shouldDownloadSampleCodeResource = false
 
 var shouldDownloadTechTalksVideoResource = false
@@ -1034,8 +1034,4 @@ sessionsListArray.sorted(by: { $0.compare($1, options: .numeric) == .orderedAsce
             }
         }
     }
-}
-
-func main() -> Void {
-    
 }
