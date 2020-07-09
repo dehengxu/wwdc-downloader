@@ -26,6 +26,16 @@ public struct DownloadSlice {
     let destination: URL
 }
 
+public func getEnv(name: String!) -> String? {
+    var rtn: String?
+    name.withCString { (up: UnsafePointer<Int8>) in
+        if let env = getenv(up) {
+            rtn = String(cString: env)
+        }
+    }
+    return rtn
+}
+
 //http://stackoverflow.com/a/30743763
 
 public class Reachability {
@@ -95,6 +105,31 @@ public func show(progress: Double, barWidth: Int, speed: String, speedUnits: Str
 
 public class wwdcVideosController {
     
+    public static var destinationDir = ""
+    public static var year = "2012";
+    
+    /// Combine year and destination dir
+    public class func destinationRootDir() -> String {
+        let path: String = getEnv(name: "PWD")!;
+        guard destinationDir.count != 0 else {
+            return "\(path)/wwdc\(year)"
+        }
+        
+        return "\(destinationDir)/wwdc\(year)"
+    }
+    
+    public class func destinationFilePath(ofURL: URL) -> String {
+        return "\(destinationRootDir())/\(ofURL.lastPathComponent)"
+    }
+    
+    public class func destinationFileURL(ofURL url: URL) -> URL {
+        return URL(fileURLWithPath: destinationFilePath(ofURL: url))
+    }
+
+    public class func destinationFileURL(of fileName: String) -> URL {
+        return URL(fileURLWithPath: "\(destinationRootDir())/\(fileName)")
+    }
+
     public class func getM3URLs(fromHTML: String, session: String) -> URL? {
         let pat = "\\b.*(https://.*\\.m3u8)\\b"
         let regex = try! NSRegularExpression(pattern: pat, options: [])
@@ -315,14 +350,16 @@ public class wwdcVideosController {
     }
     
     public class func downloadFile(fromUrl url: URL, forSession session: String = "???") {
-        guard !FileManager.default.fileExists(atPath: "./" + url.lastPathComponent) else {
+        
+        let fileUrl = destinationFileURL(ofURL: url)
+        
+        guard !FileManager.default.fileExists(atPath: destinationFilePath(ofURL: url)) else {
             print("\(url.lastPathComponent): already exists, nothing to do!")
             return
         }
         
-        let fileUrl = URL(fileURLWithPath: url.lastPathComponent)
         print("[Session \(session)] Getting \(fileUrl.lastPathComponent) (\(url.absoluteString)):")
-        
+        print("destinationDir: \(destinationRootDir())/\(url.lastPathComponent)")
         DownloadSessionManager.shared.downloadFile(fromURL: url, toFileURL: fileUrl.deletingLastPathComponent())
     }
     
@@ -330,7 +367,8 @@ public class wwdcVideosController {
         
         let fileManager = FileManager.default
         
-        let fileUrl = URL(fileURLWithPath: filename)
+        let fileUrl = destinationFileURL(of: filename)//URL(fileURLWithPath: filename)
+        
         guard !fileManager.fileExists(atPath: "./" + filename) else {
             print("\(filename): already exists, nothing to do!")
             return
@@ -624,6 +662,15 @@ public func dropProtocol(fromUrlString urlString: String) -> String {
 }
 
 public func showHelpAndExit() {
+    print("wwdcDownloader - a simple swifty video sessions bulk download.\nJust Get'em all!")
+    print("usage: wwdcDownloader.swift [--wwdc-year <year>] [--tech-talks] [--hd1080] [--hd720] [--sd] [--pdf] [--pdf-only] [--sessions <number>] [--sample] [--list-only] [--help]\n")
+    exit(0)
+}
+
+public func showHelpAndExit(message: String?) {
+    if let message = message {
+        print(message)
+    }
     print("wwdcDownloader - a simple swifty video sessions bulk download.\nJust Get'em all!")
     print("usage: wwdcDownloader.swift [--wwdc-year <year>] [--tech-talks] [--hd1080] [--hd720] [--sd] [--pdf] [--pdf-only] [--sessions <number>] [--sample] [--list-only] [--help]\n")
     exit(0)

@@ -14,8 +14,7 @@ final class wwdcDldTests: XCTestCase {
         //wwdc 2013 - session 201 - pdf url: http://devstreaming.apple.com/videos/wwdc/2013/201xex2xxf5ynwnsgl/201/201.pdf?dl=1
         
         let path = getEnv(name: "HOME")!
-        let content = try! String(contentsOfFile: "\(path)/Projects/3rd/wwdc-downloader/Tests/wwdcDldTests/data/wwdc2013.html")
-        //http://devstreaming.apple.com/videos/wwdc/2013/201xex2xxf5ynwnsgl/201/201.pdf?dl=1
+        let content = try! String(contentsOfFile: "\(path)/\(getEnv(name: "HTML_PATH")!)")
         let pattern = "\\\"http.*\\.pdf.*\\\""
         let regex = try! NSRegularExpression(pattern: pattern, options: [])
         let matches = regex.matches(in: content, options: [], range: NSRange(location: 0, length: content.count))

@@ -26,32 +26,27 @@ import Foundation
 import SystemConfiguration
 import wwdcDld
 
-func getEnv(name: String!) -> String? {
-    var rtn: String?
-    name.withCString { (up: UnsafePointer<Int8>) in
-        if let env = getenv(up) {
-            rtn = String(cString: env)
-        }
-    }
-    return rtn
-}
-
-let dev_mode = false
-
-#if run_dev
+#if false
     //TODO: Any code if you want
-    
+    let dateComp = Calendar.current.dateComponents(in: TimeZone.current, from: Date())
+    print("This year: \(dateComp.year!)")
+    wwdcVideosController.year = "\(dateComp.year!)"
+    print("\(wwdcVideosController.destinationFileURL())")
+    print()
 #else
 
 /* Managing options */
 let wwdcIndexUrlBaseString = "https://developer.apple.com/videos/"
 let wwdcSessionUrlBaseString = "https://developer.apple.com/videos/play/"
-var videoType = "wwdc2020"
+
+///Tracking year of now time
+let ThisYear = Calendar.current.dateComponents(in: TimeZone.current, from: Date()).year!
+var videoType = String("wwdc\(ThisYear)")
 var format = VideoQuality.SD
 var videoDownloadMode = VideoDownloadMode.stream
 
-var shouldDownloadPDFResource = true
-var shouldDownloadVideoResource = false
+var shouldDownloadPDFResource = false
+var shouldDownloadVideoResource = true
 var shouldDownloadSampleCodeResource = false
 
 var shouldDownloadTechTalksVideoResource = false
@@ -60,10 +55,16 @@ var shouldDownloadWWDCVideoResource = false
 var gettingSessions = false
 var sessionsSet:Set<String> = Set()
 
+public var destinationDir = getEnv(name: "PWD") ?? ""
+wwdcVideosController.destinationDir = getEnv(name: "PWD") ?? ""
+
 var arguments = CommandLine.arguments
 arguments.remove(at: 0)
 
 var iterator = arguments.makeIterator()
+
+/// Setup default year
+wwdcVideosController.year = "\(ThisYear)"
 
 while let argument = iterator.next() {
     switch argument {
@@ -124,7 +125,7 @@ while let argument = iterator.next() {
         break
 
     case "--list-only", "-l":
-        shouldDownloadPDFResource = false
+        shouldDownloadVideoResource = false
         break
 
     case "--tech-talks":
@@ -160,7 +161,12 @@ while let argument = iterator.next() {
                     
                 } else {
                     videoType = "wwdc\(yearString)"
-                    shouldDownloadWWDCVideoResource = true
+                    wwdcVideosController.year = yearString
+                    let destRootDir = wwdcVideosController.destinationRootDir()
+                    if !FileManager.default.fileExists(atPath: destRootDir) {
+                        print("Create wwdc directory: \(destRootDir)")
+                        try FileManager.default.createDirectory(atPath: destRootDir, withIntermediateDirectories: true, attributes: nil)
+                    }
                 }
 
             } else {
@@ -174,7 +180,18 @@ while let argument = iterator.next() {
         }
 
         break
-
+    case "--dir", "-d":// Use $PWD as work dir if not specified
+        if let destination = iterator.next() {
+            if destination.count > 0, destination[String.Index(utf16Offset: 0, in: destination)] != "-" {
+                destinationDir = destination
+                wwdcVideosController.destinationDir = destinationDir
+            }else {
+                showHelpAndExit(message: "Missing specified path")
+            }
+        }else {
+            showHelpAndExit(message: "Missing specified path")
+        }
+        break
     default:
 	if gettingSessions {
             if Int(argument) != nil {
