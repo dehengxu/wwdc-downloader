@@ -138,7 +138,7 @@ while let argument = iterator.next() {
         shouldDownloadTechTalksVideoResource = true
         break
 
-    case "--wwdc-year":
+    case "--wwdc-year", "--year":
         if shouldDownloadTechTalksVideoResource == true {
             print("Could not download WWDC and Tech Talks videos at the same time")
             showHelpAndExit()
