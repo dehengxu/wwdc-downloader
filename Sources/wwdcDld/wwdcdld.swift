@@ -350,16 +350,22 @@ public class wwdcVideosController {
     }
     
     public class func downloadFile(fromUrl url: URL, forSession session: String = "???") {
-        
-        let fileUrl = destinationFileURL(ofURL: url)
-        
-        guard !FileManager.default.fileExists(atPath: destinationFilePath(ofURL: url)) else {
+		var fileUrl: URL
+		if year == "2012" {
+			let comps = url.query?.components(separatedBy: "=")
+			fileUrl = destinationFileURL(of: (comps?.last)!)
+			fileUrl = destinationFileURL(of: fileUrl.lastPathComponent)
+		} else {
+			fileUrl = destinationFileURL(ofURL: url)
+		}
+
+        guard !FileManager.default.fileExists(atPath: destinationFilePath(ofURL: fileUrl)) else {
             print("\(url.lastPathComponent): already exists, nothing to do!")
             return
         }
         
-        print("[Session \(session)] Getting \(fileUrl.lastPathComponent) (\(url.absoluteString)):")
-        print("destinationDir: \(destinationRootDir())/\(url.lastPathComponent)")
+        print("[Session \(session)] Getting \(fileUrl.lastPathComponent) from: \(url.absoluteString)")
+        print("destinationDir: \(destinationFilePath(ofURL: fileUrl))")
         DownloadSessionManager.shared.downloadFile(fromURL: url, toFileURL: fileUrl.deletingLastPathComponent())
     }
     
