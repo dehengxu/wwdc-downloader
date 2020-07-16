@@ -333,15 +333,27 @@ public class wwdcVideosController {
     
     public class func getSessionsList(fromHTML: String, type: String) -> Array<String> {
         let pat = "\"\\/videos\\/play\\/\(type)\\/([0-9]*)\\/\""
+        print("regex pattern: \(pat)")
         let regex = try! NSRegularExpression(pattern: pat, options: [])
         let matches = regex.matches(in: fromHTML, options: [], range: NSRange(location: 0, length: fromHTML.count))
         var sessionsListArray = [String]()
+        print("matches: \(matches.count)")
         for match in matches {
             for n in 0..<match.numberOfRanges {
                 let range = match.range(at:n)
+                let r = Range(range)!
+                print("found at: \(n), range begin: \(range.location), length: \(range.length)")
                 switch n {
                 case 1:
-                    sessionsListArray.append(String(fromHTML[fromHTML.index(fromHTML.startIndex, offsetBy: range.location) ..< fromHTML.index(fromHTML.startIndex, offsetBy: range.location+range.length)]))
+                    let foundStr = String(fromHTML[fromHTML.index(fromHTML.startIndex, offsetBy: range.location) ..< fromHTML.index(fromHTML.startIndex, offsetBy: range.location+range.length)])
+
+                    var sessionId = 0
+                    if Scanner(string: foundStr).scanInt(&sessionId) {
+                        print("found sessionID: \(sessionId) from string: \(foundStr)")
+                        sessionsListArray.append(foundStr)
+                    }else {
+                        print("found session error: \(foundStr)")
+                    }
                 default: break
                 }
             }
