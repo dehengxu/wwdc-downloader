@@ -30,8 +30,57 @@ final class wwdcDldTests: XCTestCase {
             //print("\(content[Range(range, in: content)!])")
         }
     }
+    
+    func test_WWDC2019PDFURL() {
+        let path = getEnv(name: "HOME")!
+        let type = "wwdc2019"
+        let fromHTML = try! String(contentsOfFile: "\(path)/\(getEnv(name: "HTML_PATH_2019")!)")
+
+        let pat = "\"\\/videos\\/play\\/\(type)\\/([0-9]*)\\/\""
+        print("regex pattern: \(pat)")
+        let regex = try! NSRegularExpression(pattern: pat, options: [])
+        let matches = regex.matches(in: fromHTML, options: [], range: NSRange(location: 0, length: fromHTML.count))
+
+    }
+    
+    func test_WWDC2020PDFURL() {
+        let path = getEnv(name: "HOME")!
+        let HTML_PATH = getEnv(name: "HTML_PATH_2020")!
+        let fromHTML = try! String(contentsOfFile: "\(path)/\(HTML_PATH)")
+        let type = "wwdc2020"
+        
+        let pat = "\"\\/videos\\/play\\/\(type)\\/([0-9]*)\\/\""
+        print("regex pattern: \(pat)")
+        let regex = try! NSRegularExpression(pattern: pat, options: [])
+        let matches = regex.matches(in: fromHTML, options: [], range: NSRange(location: 0, length: fromHTML.count))
+        var sessionsListArray: [String] = []
+        
+        for match in matches {
+            for n in 0..<match.numberOfRanges {
+                let range = match.range(at:n)
+                let r = Range(range)!
+                
+                print("found at: \(n), range begin: \(range.location), length: \(range.length)")
+                switch n {
+                case 1:
+                    let foundStr = String(fromHTML[fromHTML.index(fromHTML.startIndex, offsetBy: range.location) ..< fromHTML.index(fromHTML.startIndex, offsetBy: range.location+range.length)])
+                    
+                    var sessionId = 0
+                    if Scanner(string: foundStr).scanInt(&sessionId) {
+                        print("found sessionID: \(sessionId) from string: \(foundStr)")
+                        sessionsListArray.append(foundStr)
+                    }else {
+                        print("found session error: \(foundStr)")
+                    }
+                default: break
+                }
+            }
+        }
+    }
 
     static var allTests = [
         ("test_PDFResourceURL", test_PDFResourceURL),
+        ("test_WWDC2019PDFURL", test_WWDC2019PDFURL),
+        ("test_WWDC2020PDFURL", test_WWDC2020PDFURL)
     ]
 }
