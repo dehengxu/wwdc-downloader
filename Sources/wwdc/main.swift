@@ -24,40 +24,21 @@
 import Cocoa
 import Foundation
 import SystemConfiguration
-import wwdcDld
+import WWDCDL
 
-#if false // development purpose
+#if true // development purpose
     //TODO: Any code if you want
     let dateComp = Calendar.current.dateComponents(in: TimeZone.current, from: Date())
+    let wwdc = Downloader()
     print("This year: \(dateComp.year!)")
-    wwdcdl.year = "\(dateComp.year!)"
-    print("\(wwdcdl.destinationRootDir())")
+    wwdc.config.year = "\(dateComp.year!)"
+    print("\(wwdc.destinationRootDir())")
 
     print()
 #else
 
-/* Managing options */
-let wwdcIndexUrlBaseString = "https://developer.apple.com/videos/"
-let wwdcSessionUrlBaseString = "https://developer.apple.com/videos/play/"
-
-///Tracking year of now time
-let ThisYear = Calendar.current.dateComponents(in: TimeZone.current, from: Date()).year!
-var videoType = String("wwdc\(ThisYear)")
-var format = VideoQuality.SD
-var videoDownloadMode = VideoDownloadMode.stream
-
-var shouldDownloadPDFResource = false
-var shouldDownloadVideoResource = true
-var shouldDownloadSampleCodeResource = false
-
-var shouldDownloadTechTalksVideoResource = false
-var shouldDownloadWWDCVideoResource = false
-
-var gettingSessions = false
-var sessionsSet:Set<String> = Set()
-
-public var destinationDir = getEnv(name: "PWD") ?? ""
-wwdcdl.config.destinationDir = getEnv(name: "PWD") ?? ""
+let wwdc = Downloader()
+wwdc.config.destinationDir = getEnv(name: "PWD") ?? ""
 
 var arguments = CommandLine.arguments
 arguments.remove(at: 0)
@@ -65,153 +46,15 @@ arguments.remove(at: 0)
 var iterator = arguments.makeIterator()
 
 /// Setup default year
-wwdcdl.config.year = "\(ThisYear)"
+wwdc.config.year = "\(ThisYear)"
 
-while let argument = iterator.next() {
-    switch argument {
+parseArguments(arguments, wwdc: wwdc)
 
-    case "-h", "--help":
-        wwdcdl.showHelpAndExit()
-        break
+var wwdcIndexUrlString = wwdc.getWWDCIndexUrl()
+var wwdcSessionUrlString = wwdc.getWWDCSessionUrl()
 
-    case "--hd1080":
-        format = .HD1080
-        break
-
-    case "--hd720":
-        format = .HD720
-        videoDownloadMode = .file
-        break
-
-    case "--sd":
-        format = .SD
-        videoDownloadMode = .file
-        break
-
-    case "--pdf":
-        shouldDownloadPDFResource = true
-        break
-
-    case "--pdf-only":
-        shouldDownloadPDFResource = true
-        shouldDownloadVideoResource = false
-        break
-
-    case "--sample":
-        shouldDownloadSampleCodeResource = true
-        break
-
-    case "--sample-only":
-        shouldDownloadSampleCodeResource = true
-        shouldDownloadVideoResource = false
-        break
-
-    case "--sessions", "-s":
-        gettingSessions = true
-
-        if let session = iterator.next() {
-            if Int(session) != nil {
-                sessionsSet.insert(session)
-
-            } else {
-                print("\(session) is not a valid session nuber")
-                wwdcdl.showHelpAndExit()
-            }
-
-        } else {
-            print("Missing session number")
-            wwdcdl.showHelpAndExit()
-        }
-
-        break
-
-    case "--list-only", "-l":
-        shouldDownloadVideoResource = false
-        break
-
-    case "--tech-talks":
-        if shouldDownloadWWDCVideoResource == true {
-            print("Could not download WWDC and Tech Talks videos at the same time")
-            wwdcdl.showHelpAndExit()
-        }
-        
-        videoType = "tech-talks"
-        shouldDownloadTechTalksVideoResource = true
-        break
-
-    case "--wwdc-year", "--year":
-        if shouldDownloadTechTalksVideoResource == true {
-            print("Could not download WWDC and Tech Talks videos at the same time")
-            wwdcdl.showHelpAndExit()
-        }
-
-        if let yearString = iterator.next() {
-            if let year = Int(yearString) {
-                let today = Date()
-                let currentYear = Calendar.current.component(.year, from: today)
-                let currentMonth = Calendar.current.component(.month, from: today)
-
-                if year > currentYear || (year == currentYear && currentMonth < 6) {
-                    print("WWDC \(yearString) videos are not yet available")
-                    wwdcdl.showHelpAndExit()
-
-                } else if year < 2012 {
-                    print("WWDC videos earlier than 2012 were not made available for downloads")
-                    wwdcdl.showHelpAndExit()
-
-                    
-                } else {
-                    videoType = "wwdc\(yearString)"
-                    wwdcdl.config.year = yearString
-                    let destRootDir = wwdcdl.destinationRootDir()
-                    if !FileManager.default.fileExists(atPath: destRootDir) {
-                        print("Create wwdc directory: \(destRootDir)")
-                        try FileManager.default.createDirectory(atPath: destRootDir, withIntermediateDirectories: true, attributes: nil)
-                    }
-                }
-
-            } else {
-                print("\(yearString) is not a valid year")
-                wwdcdl.showHelpAndExit()
-            }
-
-        } else {
-            print("Missing year")
-            wwdcdl.showHelpAndExit()
-        }
-
-        break
-    case "--dir", "-d":// Use $PWD as work dir if not specified
-        if let destination = iterator.next() {
-            if destination.count > 0, destination[String.Index(utf16Offset: 0, in: destination)] != "-" {
-                destinationDir = destination
-                wwdcdl.config.destinationDir = destinationDir
-            }else {
-                wwdcdl.showHelpAndExit(message: "Missing specified path")
-            }
-        }else {
-            wwdcdl.showHelpAndExit(message: "Missing specified path")
-        }
-        break
-    default:
-	if gettingSessions {
-            if Int(argument) != nil {
-                sessionsSet.insert(argument)
-                break
-            } else {
-                gettingSessions = false
-            }
-        }
-        print("\(argument) is not a \(#file) command.\n")
-        wwdcdl.showHelpAndExit()
-    }
-}
-
-var wwdcIndexUrlString = wwdcIndexUrlBaseString + videoType + "/"
-var wwdcSessionUrlString = wwdcSessionUrlBaseString + videoType + "/"
-
-if(shouldDownloadVideoResource) {
-    switch format {
+if(wwdc.shouldDownloadVideoResource) {
+    switch wwdc.format {
     case .HD1080:
         if commandPath(command: "ffmpeg") == nil {
             print("Could not find ffmpeg. wwdcDownloader will download video stream but will not be able to convert to mp4 video files.")
@@ -230,31 +73,31 @@ if(shouldDownloadVideoResource) {
 }
 
 /* Retreiving list of all video session */
-let htmlSessionListString = wwdcdl.getStringContent(fromURL: wwdcIndexUrlString)
+let htmlSessionListString = wwdc.getStringContent(fromURL: wwdcIndexUrlString)
 print("scrab from: ", wwdcIndexUrlString)
 print("session: ", wwdcSessionUrlString)
 print("Let me ask Apple about currently available sessions. This can take some times (15 to 20 sec.) ...")
-var sessionsListArray = wwdcdl.getSessionsList(fromHTML: htmlSessionListString, type: videoType)
+var sessionsListArray = wwdc.getSessionsList(fromHTML: htmlSessionListString, type: wwdc.videoType)
 //get unique values
 sessionsListArray=Array(Set(sessionsListArray))
 
 /* getting individual videos */
-if sessionsSet.count != 0 {
+if wwdc.sessionsSet.count != 0 {
     let sessionsListSet = Set(sessionsListArray)
-    sessionsListArray = Array(sessionsSet.intersection(sessionsListSet))
+    sessionsListArray = Array(wwdc.sessionsSet.intersection(sessionsListSet))
 }
 
 sessionsListArray.sorted(by: { $0.compare($1, options: .numeric) == .orderedAscending }).forEach { session in
-    let htmlText = wwdcdl.getStringContent(fromURL: wwdcSessionUrlString + session + "/")
-    let title = wwdcdl.getTitle(fromHTML: htmlText)
+    let htmlText = wwdc.getStringContent(fromURL: wwdcSessionUrlString + session + "/")
+    let title = wwdc.getTitle(fromHTML: htmlText)
     print("\n[Session \(session)] : \(title), url: \(wwdcSessionUrlString + session + "/")")
 
-    if shouldDownloadVideoResource {
+    if wwdc.shouldDownloadVideoResource {
         let url: URL?
-        if videoDownloadMode == .stream {
-            url = wwdcdl.getM3URLs(fromHTML: htmlText, session: session)
+        if wwdc.videoDownloadMode == .stream {
+            url = wwdc.getM3URLs(fromHTML: htmlText, session: session)
         } else {
-            url = wwdcdl.getHDorSDdURLs(fromHTML: htmlText, format: format)
+            url = wwdc.getHDorSDdURLs(fromHTML: htmlText, format: wwdc.format)
         }
 
         guard let videoUrl = url else {
@@ -262,37 +105,37 @@ sessionsListArray.sorted(by: { $0.compare($1, options: .numeric) == .orderedAsce
             return
         }
 
-        if videoDownloadMode == .stream {
-            let filename = makeFilename(fromTitle: title, session: session, format: format.rawValue, ext: "mp4")
+        if wwdc.videoDownloadMode == .stream {
+            let filename = makeFilename(fromTitle: title, session: session, format: wwdc.format.rawValue, ext: "mp4")
             print("Video : \(filename)")
-            wwdcdl.downloadStream(playlistUrl: videoUrl, toFile: filename, forFormat: format.rawValue, forSession: session)
+            wwdc.downloadStream(playlistUrl: videoUrl, toFile: filename, forFormat: wwdc.format.rawValue, forSession: session)
 
         } else {
             print("Video : \(videoUrl.lastPathComponent)")
-            wwdcdl.downloadFile(fromUrl: videoUrl, forSession: session)
+            wwdc.downloadFile(fromUrl: videoUrl, forSession: session)
         }
     }
 
-    if shouldDownloadPDFResource {
-        let url = wwdcdl.getPDFResourceURL(fromHTML: htmlText, session: session)
+    if wwdc.shouldDownloadPDFResource {
+        let url = wwdc.getPDFResourceURL(fromHTML: htmlText, session: session)
         guard let pdfResourceUrl = url else {
             print("PDF : PDF is not yet available !!!")
             return
         }
 
         print("PDF : \(pdfResourceUrl.lastPathComponent)")
-        wwdcdl.downloadFile(fromUrl: pdfResourceUrl, forSession: session)
+        wwdc.downloadFile(fromUrl: pdfResourceUrl, forSession: session)
     }
 
-    if shouldDownloadSampleCodeResource {
-        let sampleUrls = wwdcdl.getSampleCodeURL(fromHTML: htmlText)
+    if wwdc.shouldDownloadSampleCodeResource {
+        let sampleUrls = wwdc.getSampleCodeURL(fromHTML: htmlText)
         if sampleUrls.isEmpty {
             print("SampleCode: Resource not yet available !!!")
         } else {
             print("SampleCode: ")
             for url in sampleUrls {
                 print("\(url.lastPathComponent)")
-                wwdcdl.downloadFile(fromUrl: url, forSession: session)
+                wwdc.downloadFile(fromUrl: url, forSession: session)
             }
         }
     }

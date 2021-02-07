@@ -1,9 +1,32 @@
 import XCTest
 import Foundation
+import RxSwift
 
-@testable import wwdcDld
+@testable import WWDCDL
 
 final class wwdcDldTests: XCTestCase {
+    
+    func test_pdfFromWeb() {
+        let wwdc = Downloader()
+        let args = [
+            "--wwdc-year",
+            "2019",
+            "--pdf-only"
+        ]
+        parseArguments(args, wwdc: wwdc)
+        print("" , wwdc.getWWDCIndexUrl() )
+        print("", wwdc.getWWDCSessionUrl() )
+        
+        rxSession(wwdc.getWWDCIndexUrl()).rxSessionList(wwdc).subscribe { (r: Array<String>) in
+            print("r :", r)
+        } onError: { (e: Error) in
+            print("e :", e)
+        } onCompleted: {
+            print("completed.")
+        }
+        
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 3.0))
+    }
     
     func test_PDFResourceURL() {
         // This is an example of a functional test case.
