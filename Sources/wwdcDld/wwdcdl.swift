@@ -103,19 +103,33 @@ public func show(progress: Double, barWidth: Int, speed: String, speedUnits: Str
     fflush(__stdoutp)
 }
 
-public class wwdcVideosController {
+/// WWDC downloader
+public class wwdcdl {
     
-    public static var destinationDir = ""
-    public static var year = "2012";
+    public static var config = DownloadConfig()
+    
+//    public static var destinationDir = ""
+//    public static var year = "2012";
+    
+    public class func showHelpAndExit(message: String? = "") {
+        if let message = message {
+            print(message)
+        }
+        print("wwdcDownloader - a simple swifty video sessions bulk download.\nJust Get'em all!")
+        print("usage: wwdcDownloader.swift [--wwdc-year <year>] [--tech-talks] [--hd1080] [--hd720] [--sd] [--pdf] [--pdf-only] [--sessions <number>] [--sample] [--list-only] [--help]\n")
+        exit(0)
+    }
+    
+    //MARK: - File system relatived
     
     /// Combine year and destination dir
     public class func destinationRootDir() -> String {
         let path: String = getEnv(name: "PWD")!;
-        guard destinationDir.count != 0 else {
-            return "\(path)/wwdc\(year)"
+        guard config.destinationDir.count != 0 else {
+            return "\(path)/wwdc\(config.year)"
         }
         
-        return "\(destinationDir)/wwdc\(year)"
+        return "\(config.destinationDir)/wwdc\(config.year)"
     }
     
     public class func destinationFilePath(ofURL: URL) -> String {
@@ -129,6 +143,8 @@ public class wwdcVideosController {
     public class func destinationFileURL(of fileName: String) -> URL {
         return URL(fileURLWithPath: "\(destinationRootDir())/\(fileName)")
     }
+    
+    //MARK: - Resource utils
 
     public class func getM3URLs(fromHTML: String, session: String) -> URL? {
         let pat = "\\b.*(https://.*\\.m3u8)\\b"
@@ -363,7 +379,7 @@ public class wwdcVideosController {
     
     public class func downloadFile(fromUrl url: URL, forSession session: String = "???") {
 		var fileUrl: URL
-		if year == "2012" {
+        if config.year == "2012" {
 			let comps = url.query?.components(separatedBy: "=")
 			fileUrl = destinationFileURL(of: (comps?.last)!)
 			fileUrl = destinationFileURL(of: fileUrl.lastPathComponent)
@@ -677,21 +693,6 @@ public func dropProtocol(fromUrlString urlString: String) -> String {
     let path = regex.stringByReplacingMatches(in: urlString, options: [], range: NSRange(location: 0, length: urlString.count), withTemplate: "")
     
     return path
-}
-
-public func showHelpAndExit() {
-    print("wwdcDownloader - a simple swifty video sessions bulk download.\nJust Get'em all!")
-    print("usage: wwdcDownloader.swift [--wwdc-year <year>] [--tech-talks] [--hd1080] [--hd720] [--sd] [--pdf] [--pdf-only] [--sessions <number>] [--sample] [--list-only] [--help]\n")
-    exit(0)
-}
-
-public func showHelpAndExit(message: String?) {
-    if let message = message {
-        print(message)
-    }
-    print("wwdcDownloader - a simple swifty video sessions bulk download.\nJust Get'em all!")
-    print("usage: wwdcDownloader.swift [--wwdc-year <year>] [--tech-talks] [--hd1080] [--hd720] [--sd] [--pdf] [--pdf-only] [--sessions <number>] [--sample] [--list-only] [--help]\n")
-    exit(0)
 }
 
 public func makeFilename(fromTitle title: String, session: String, format: String, ext: String) -> String {
